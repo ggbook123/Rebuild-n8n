@@ -1,0 +1,16 @@
+{
+  "name": "n8n-i18n-chinese",
+  "private": true,
+  "scripts": {
+    "i18n:translate": "node ./scripts/translate.js"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.7",
+    "n8n-nodes-base": "latest",
+    "qs": "latest"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "p-limit": "^2.3.0"
+  }
+}
