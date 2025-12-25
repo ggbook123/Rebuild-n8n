@@ -159,14 +159,20 @@ function collectMessages(oldSourceLanguages, newSourceLanguages, targetLanguages
 
 
 async function run(){
-    const oldEnLanguages = require("./en.json");
-    const newEnNodesLanguages = fs.existsSync("./en-nodes.json") ? require("./en-nodes.json") : {};
-    let newEnLanguages = await fetch("https://raw.githubusercontent.com/n8n-io/n8n/master/packages/frontend/%40n8n/i18n/src/locales/en.json")
+    const oldEnLanguages = require("./temp/en.json");
+    const newEnNodesLanguages = fs.existsSync("./temp/en-nodes.json") ? require("./temp/en-nodes.json") : {};
+    
+    const refTag = process.env.REF_TAG;
+    const enUrl = refTag 
+        ? `https://raw.githubusercontent.com/n8n-io/n8n/${refTag}/packages/frontend/%40n8n/i18n/src/locales/en.json`
+        : "https://raw.githubusercontent.com/n8n-io/n8n/master/packages/frontend/%40n8n/i18n/src/locales/en.json";
+    
+    let newEnLanguages = await fetch(enUrl)
         .then(res => res.json())
 
     for (const targetLanguage of targetLanguages) {
         let targetLanguages = {};
-        let fileName = `../languages/${targetLanguage.name}.json`;
+        let fileName = `../locales/${targetLanguage.name}.json`;
         if (fs.existsSync(fileName)){
             targetLanguages = JSON.parse(fs.readFileSync(fileName, "utf8"))
         }else{
@@ -187,7 +193,7 @@ async function run(){
         // 将翻译后的语言写入文件
         fs.writeFileSync(fileName, JSON.stringify(sortedTargetLanguages, null, 4));
     }
-    fs.writeFileSync("./en.json", JSON.stringify(newEnLanguages, null, 4));
+    fs.writeFileSync("./temp/en.json", JSON.stringify(newEnLanguages, null, 4));
 }
 
 run();
