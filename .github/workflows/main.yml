@@ -1,0 +1,116 @@
+name: Fetch Repository and Apply Patch
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+env:
+  IMAGE_BASE_NAME: n8n
+  RUNNERS_IMAGE_BASE_NAME: runners
+
+
+jobs:
+  apply-patch:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 拉取指定仓库
+        uses: actions/checkout@v4
+        with:
+          repository: owner/repo-name
+          fetch-depth: 1
+
+      - name: 读取package.json
+        id: package
+        run: |
+          NODE_VERSION=$(grep -o '"node": "[^"]*"' package.json | cut -d'"' -f4 | sed 's/>=//')
+          PNPM_VERSION=$(grep -o '"pnpm": "[^"]*"' package.json | cut -d'"' -f4 | sed 's/>=//')
+          IMAGE_TAG=$(grep -o '"version": "[^"]*"' package.json | cut -d'"' -f4)
+          echo "node_version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          echo "pnpm_version=$PNPM_VERSION" >> $GITHUB_OUTPUT
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "Node version: $NODE_VERSION"
+          echo "Pnpm version: $PNPM_VERSION"
+          echo "Image tag: $IMAGE_TAG"
+
+      - name: 安装Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.package.outputs.node_version }}
+
+      - name: 安装pnpm
+        run: |
+          npm install -g pnpm@${{ steps.package.outputs.pnpm_version }}
+
+      - name: 应用patch
+        run: |
+          for patch in patches/*.patch; do
+            if [ -f "$patch" ]; then
+              echo "Applying: $patch"
+              git apply "$patch"
+            fi
+          done
+
+      - name: 复制locales文件
+        run: |
+          mkdir -p packages/frontend/@n8n/i18n/src/locales
+          cp -r locales/* packages/frontend/@n8n/i18n/src/locales/
+
+      - name: 设置Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: 验证Docker环境
+        run: |
+          docker version
+          docker buildx version
+          echo "IMAGE_BASE_NAME: $IMAGE_BASE_NAME"
+          echo "IMAGE_TAG: ${{ steps.package.outputs.image_tag }}"
+          echo "RUNNERS_IMAGE_BASE_NAME: $RUNNERS_IMAGE_BASE_NAME"
+
+      - name: 安装依赖
+        run: |
+          pnpm install
+
+      - name: 构建项目
+        run: |
+          node scripts/build-n8n.mjs
+
+      - name: 构建Docker镜像
+        run: |
+          node scripts/dockerize-n8n.mjs
+
+      - name: 获取小写用户名
+        id: lowercase
+        run: |
+          OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "owner=$OWNER_LOWER" >> $GITHUB_OUTPUT
+
+      - name: 登录GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: 打标签并推送n8n镜像
+        run: |
+          IMAGE_ID=ghcr.io/${{ steps.lowercase.outputs.owner }}/n8n:${{ steps.package.outputs.image_tag }}
+          docker tag n8n:latest $IMAGE_ID
+          docker push $IMAGE_ID
+          echo "Pushed: $IMAGE_ID"
+
+      - name: 打标签并推送runners镜像
+        run: |
+          IMAGE_ID=ghcr.io/${{ steps.lowercase.outputs.owner }}/runners:${{ steps.package.outputs.image_tag }}
+          docker tag runners:latest $IMAGE_ID
+          docker push $IMAGE_ID
+          echo "Pushed: $IMAGE_ID"
+      
+      - name: 提交变更
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add -A
+          git status
+          git diff --cached --stat
