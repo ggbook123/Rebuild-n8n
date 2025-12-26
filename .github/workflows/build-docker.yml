@@ -113,6 +113,16 @@ jobs:
         with:
           version: ${{ steps.package.outputs.pnpm_version }}
 
+      - name: Auto-fix all @typescript-eslint version conflicts
+        run: |
+          VERSION=${{ steps.package.outputs.node_version }}
+          
+          pnpm override add "@typescript-eslint/eslint-plugin@^$VERSION"
+          pnpm override add "@typescript-eslint/parser@^$VERSION"
+          pnpm override add "@typescript-eslint/types@^$VERSION"
+          pnpm override add "@typescript-eslint/utils@^$VERSION"
+          pnpm override add "@typescript-eslint/experimental-utils@^$VERSION"
+
       - name: 设置Docker BuildX
         uses: docker/setup-buildx-action@v3
 
