@@ -129,41 +129,72 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
       
+      - name: 检查n8n镜像是否已存在
+        id: check-n8n-exists
+        run: |
+          if docker manifest inspect ghcr.io/${{ steps.lowercase.outputs.owner }}/n8n:${{ steps.package.outputs.image_tag }} > /dev/null 2>&1; then
+            echo "n8n镜像已存在，跳过构建"
+            echo "skip_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "n8n镜像不存在，需要构建"
+            echo "skip_build=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 检查runners镜像是否已存在
+        id: check-runners-exists
+        run: |
+          if docker manifest inspect ghcr.io/${{ steps.lowercase.outputs.owner }}/runners:${{ steps.package.outputs.image_tag }} > /dev/null 2>&1; then
+            echo "runners镜像已存在，跳过构建"
+            echo "skip_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "runners镜像不存在，需要构建"
+            echo "skip_build=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: 安装依赖
+        if: steps.check-n8n-exists.outputs.skip_build != 'true' || steps.check-runners-exists.outputs.skip_build != 'true'
         run: |
           rm -rf node_modules packages/*/node_modules
           pnpm install --frozen-lockfile
 
       - name: 验证依赖
+        if: steps.check-n8n-exists.outputs.skip_build != 'true' || steps.check-runners-exists.outputs.skip_build != 'true'
         run: |
           ls -la node_modules/zx/ 2>/dev/null && echo "zx 已安装" || echo "zx 未安装"
 
       - name: 预编译
+        if: steps.check-n8n-exists.outputs.skip_build != 'true' || steps.check-runners-exists.outputs.skip_build != 'true'
         run: |
           NODE_OPTIONS="--max-old-space-size=4096" TSC_SKIP_LIB_CHECK=true node scripts/build-n8n.mjs
 
       - name: 构建并推送n8n镜像
+        if: steps.check-n8n-exists.outputs.skip_build != 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/images/n8n/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ steps.lowercase.outputs.owner }}/n8n:${{ steps.package.outputs.image_tag }}
+          tags: |
+            ghcr.io/${{ steps.lowercase.outputs.owner }}/n8n:${{ steps.package.outputs.image_tag }}
+            ghcr.io/${{ steps.lowercase.outputs.owner }}/n8n:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: 构建并推送runners镜像
+        if: steps.check-runners-exists.outputs.skip_build != 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/images/runners/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ steps.lowercase.outputs.owner }}/runners:${{ steps.package.outputs.image_tag }}
+          tags: |
+            ghcr.io/${{ steps.lowercase.outputs.owner }}/runners:${{ steps.package.outputs.image_tag }}
+            ghcr.io/${{ steps.lowercase.outputs.owner }}/runners:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
       - name: 结束
         run: |
-          echo "成功。"
+          echo "成功构建并推送n8n和runners镜像。"
