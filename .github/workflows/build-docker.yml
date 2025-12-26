@@ -129,6 +129,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
       
+      - name: 设置n8n镜像为公开
+        uses: ianlewis/ghcr-publish-action@v1
+        with:
+          registry: ghcr.io
+          owner: ${{ steps.lowercase.outputs.owner }}
+          repository: n8n
+          visibility: public
+      
+      - name: 设置runners镜像为公开
+        uses: ianlewis/ghcr-publish-action@v1
+        with:
+          registry: ghcr.io
+          owner: ${{ steps.lowercase.outputs.owner }}
+          repository: runners
+          visibility: public
+      
       - name: 检查n8n镜像是否已存在
         id: check-n8n-exists
         run: |
