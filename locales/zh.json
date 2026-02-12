@@ -3458,7 +3458,6 @@
     "workflowSettings.timeSavedPerExecution.tooltip": "总节省时间在概览页面中汇总。",
     "workflowSettings.timeSavedPerExecution.minutesSaved": "节省的分钟数",
     "workflowSettings.timeSavedPerExecution.tab.fixed": "已修复",
-    "workflowSettings.timeSavedPerExecution.tab.conditional": "条件性",
     "workflowSettings.timeSavedPerExecution.noNodesDetected": "未检测到已保存的时间节点",
     "workflowSettings.timeSavedPerExecution.noNodesDetected.hint": "添加一个或多个节省时间节点以动态计算节省的时间",
     "workflowSettings.timeSavedPerExecution.nodesDetected": "活跃 - 当前已设置 {count} 个时间保存节点",
