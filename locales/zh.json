@@ -2924,7 +2924,6 @@
     "settings.secretsProviderConnections.modal.testConnection.success.serviceEnabled": "服务已启用，{providerName} 上有 {count} 个可用的密钥。",
     "settings.secretsProviderConnections.modal.testConnection.success.reference": "在凭证中使用表达式引用密钥：",
     "settings.secretsProviderConnections.modal.testConnection.error": "连接失败，请检查您的 {providerName} 设置",
-    "settings.secretsProviderConnections.modal.testConnection.error.serviceDisabled": "连接失败。无法访问提供者。",
     "settings.secretsProviderConnections.modal.validation.connectionName.required": "密钥存储名称是必需的。请输入一个唯一的密钥存储名称。",
     "settings.secretsProviderConnections.modal.validation.connectionName.format": "密钥存储名称只能包含小写字母、数字和连字符（例如：\"aws-production\"）",
     "settings.secretsProviderConnections.modal.connectionName.hint": "为您的密钥存储输入一个唯一的名称。此名称之后将无法更改。",
